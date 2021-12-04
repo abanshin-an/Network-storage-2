@@ -1,0 +1,5 @@
+port: 9000
+root: storage_root
+users: server/users.db
+driverName: org.sqlite.JDBC
+connection: jdbc:sqlite:server/user.db

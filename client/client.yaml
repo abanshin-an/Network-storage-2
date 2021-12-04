@@ -1,0 +1,3 @@
+port: 9000
+host: localhost
+root: client_root

@@ -17,13 +17,9 @@ public class JSONEncoder extends MessageToByteEncoder<Message> {
     }
 
     @Override
-    protected void encode(ChannelHandlerContext ctx, Message msg, ByteBuf out) {
-        byte[] value = new byte[0];
-        try {
-            value = OBJECT_MAPPER.writeValueAsBytes(msg);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
+    protected void encode(ChannelHandlerContext ctx, Message msg, ByteBuf out) throws JsonProcessingException {
+        byte[] value;
+        value = OBJECT_MAPPER.writeValueAsBytes(msg);
         out.writeBytes(value);
     }
 }

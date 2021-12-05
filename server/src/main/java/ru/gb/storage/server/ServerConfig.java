@@ -1,5 +1,7 @@
 package ru.gb.storage.server;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
@@ -10,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class ServerConfig {
+    private static final Logger log = LogManager.getLogger(ServerConfig.class);
     private int port = 8989;
     private String root = "server_";
     private String users = "server/user1.db";
@@ -32,15 +35,16 @@ public class ServerConfig {
         try (InputStream in = Files.newInputStream(p)) {
             config = yaml.loadAs(in, ServerConfig.class);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e);
         }
         return config;
     }
 
     public static void main(String[] args) {
         ServerConfig config = ServerConfig.init(args);
-        if (config != null)
-            System.out.println(config);
+        if (config != null) {
+            log.info(config);
+        }
     }
 
     public String getConnection() {

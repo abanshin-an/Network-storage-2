@@ -1,11 +1,14 @@
 package ru.gb.storage.commons.message;
 
 public class ResultMessage extends Message {
-    boolean result;
-    String comment;
+    private boolean ok;
+    private String comment;
 
-    public ResultMessage(boolean result, String comment) {
-        this.result = result;
+    public ResultMessage() {
+    }
+
+    public ResultMessage(boolean ok, String comment) {
+        this.ok = ok;
         this.comment = comment;
     }
 
@@ -17,18 +20,18 @@ public class ResultMessage extends Message {
         this.comment = comment;
     }
 
-    public boolean isResult() {
-        return result;
+    public boolean isOk() {
+        return ok;
     }
 
-    public void setResult(boolean result) {
-        this.result = result;
+    public void setOk(boolean ok) {
+        this.ok = ok;
     }
 
     @Override
     public String toString() {
         return "ResultMessage{" +
-                "result=" + result +
+                "result=" + ok +
                 ", comment='" + comment + '\'' +
                 '}';
     }

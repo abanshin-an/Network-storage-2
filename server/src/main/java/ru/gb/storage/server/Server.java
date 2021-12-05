@@ -9,36 +9,43 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import ru.gb.storage.commons.Constant;
 import ru.gb.storage.commons.handler.JSONDecoder;
 import ru.gb.storage.commons.handler.JSONEncoder;
 
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 public class Server {
-    private static ThreadPoolExecutor executor = null;
+    private static final Logger log = LogManager.getLogger(Server.class);
+    private static Executor executor = null;
     private NioEventLoopGroup bossGroup = null;
     private NioEventLoopGroup workGroup = null;
-    private static ServerConfig serverConfig = null;
+    private static ServerConfig config = null;
+    private static final UserDB user=new UserDB();
+
+    public static ServerConfig getConfig() {
+        return config;
+    }
+
+    public static UserDB getUser() {
+        return user;
+    }
+
     public static void main(String[] args) {
-        serverConfig = ServerConfig.init(args);
-        executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
+        config = ServerConfig.init(args);
+        UserDB.init(config,false);
+        executor = Executors.newCachedThreadPool();
         try {
             Server s = new Server();
             s.run();
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error(e);
             Thread.currentThread().interrupt();
         } finally {
-            try {
-                executor.shutdown();
-                executor.awaitTermination(15, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                Thread.currentThread().interrupt();
-            }
+            UserDB.close();
         }
     }
 
@@ -57,15 +64,14 @@ public class Server {
                             new LengthFieldPrepender(3),
                             new JSONDecoder(),
                             new JSONEncoder(),
-                            new ServerHandler(executor,serverConfig)
+                            new ServerHandler(Server.this)
                     );
                 }
             });
             serverBootstrap.option(ChannelOption.SO_KEEPALIVE, true)
                     .option(ChannelOption.SO_BACKLOG, 128);
-            ChannelFuture channelFuture = serverBootstrap.bind(serverConfig.getPort()).sync();
-            System.out.println("Server started");
-            System.out.println(serverConfig.toString());
+            ChannelFuture channelFuture = serverBootstrap.bind(config.getPort()).sync();
+            log.info("Server started {} ",config);
             channelFuture.channel().closeFuture().sync();   // close port
         } finally {
             bossGroup.shutdownGracefully().sync();
@@ -77,5 +83,9 @@ public class Server {
         // shutdown EventLoopGroup
         bossGroup.shutdownGracefully();
         workGroup.shutdownGracefully();
+    }
+
+    public Executor getExecutor() {
+        return executor;
     }
 }

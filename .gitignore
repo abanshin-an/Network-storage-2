@@ -32,3 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 
+/logs/app.log
+/client_root/
+/storage_root/

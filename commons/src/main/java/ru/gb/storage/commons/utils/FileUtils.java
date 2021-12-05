@@ -1,7 +1,5 @@
 package ru.gb.storage.commons.utils;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.netty.channel.ChannelHandlerContext;
 import ru.gb.storage.commons.Constant;
 import ru.gb.storage.commons.message.CommandMessage;
@@ -15,13 +13,6 @@ import java.io.RandomAccessFile;
 import java.util.stream.Stream;
 
 public class FileUtils {
-    static ObjectMapper objectMapper;
-
-    static {
-
-        objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-    }
 
     private FileUtils() {
     }

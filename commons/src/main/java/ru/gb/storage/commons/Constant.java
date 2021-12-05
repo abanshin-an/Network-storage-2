@@ -6,8 +6,13 @@ public class Constant {
     public static final String PUT = "put";
     public static final String CD = "cd";
     public static final String LS = "ls";
-    public static final String GET_FILELIST = "filelist";
-    public static final String REGISTER = "register";
+    public static final String GET_FILELIST = "rls";
+    public static final String REGISTER = "reg";
+    public static final String UNREGISTER = "unreg";
+    public static final String LOGIN = "login";
+    public static final String LOGOUT = "logout";
+    public static final String CHANGE_PASSWORD = "chpass";
+
     public static final String CONNECT = "connect";
     public static final String TEXT = "text";
     public static final String BYE = "bye";

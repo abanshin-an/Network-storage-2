@@ -7,7 +7,6 @@ import ru.gb.storage.commons.message.CommandMessage;
 import ru.gb.storage.commons.message.FileListMessage;
 import ru.gb.storage.commons.message.FileMessage;
 import ru.gb.storage.commons.message.Message;
-import ru.gb.storage.commons.utils.CommandUtils;
 import ru.gb.storage.commons.utils.FileUtils;
 
 public class ClientHandler extends SimpleChannelInboundHandler<Message> {
@@ -23,24 +22,28 @@ public class ClientHandler extends SimpleChannelInboundHandler<Message> {
         System.out.println("Client channel Active");
         fc.setCtx(ctx);
     }
-
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, Message msg) {
+    public void channelInactive(ChannelHandlerContext ctx) {
+        System.out.println("Client channel Inactive");
+        fc.setCtx(null);
+    }
+    @Override
+    protected void channelRead0(ChannelHandlerContext ctx, Message msg) throws InterruptedException {
         System.out.println("Client incoming message :" + msg);
         if (msg instanceof CommandMessage) {
             var commandMessage = (CommandMessage) msg;
-            switch (CommandUtils.getOrder(commandMessage)) {
+            switch (commandMessage.getOrder()) {
                 case Constant.TEXT:
-                    System.out.println("Server:" + CommandUtils.getArgument(commandMessage));
+                    System.out.println("Server:" + commandMessage.getArgument());
                     break;
                 case Constant.ECHO:
-                    System.out.println("Server echo:" + CommandUtils.getArgument(commandMessage));
+                    System.out.println("Server echo:" + commandMessage.getArgument());
                     break;
                 case Constant.BYE:
                     fc.stop();
                     break;
                 default:
-                    System.out.println("Server answer:" + CommandUtils.getArgument(commandMessage));
+                    System.out.println("Server answer:" + commandMessage.getArgument());
             }
         } else if (msg instanceof FileMessage) {
             FileUtils.recvFile((FileMessage) msg, fc.getRecvPath());

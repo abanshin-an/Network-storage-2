@@ -1,7 +1,9 @@
 package ru.gb.storage.server;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.*;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -10,22 +12,34 @@ import io.netty.handler.codec.LengthFieldPrepender;
 import ru.gb.storage.commons.Constant;
 import ru.gb.storage.commons.handler.JSONDecoder;
 import ru.gb.storage.commons.handler.JSONEncoder;
-import ru.gb.storage.commons.message.CommandMessage;
-import ru.gb.storage.commons.message.Message;
-import ru.gb.storage.commons.utils.CommandUtils;
-import ru.gb.storage.commons.utils.FileUtils;
 
-import static ru.gb.storage.commons.Constant.STORAGE_ROOT;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class Server {
-    private static final int PORT = 9000;
-    NioEventLoopGroup bossGroup = null;
-    NioEventLoopGroup workGroup = null;
-    ChannelFuture channelFuture = null;
-
-    public static void main(String[] args) throws Exception {
-        Server s = new Server();
-        s.run();
+    private static ThreadPoolExecutor executor = null;
+    private NioEventLoopGroup bossGroup = null;
+    private NioEventLoopGroup workGroup = null;
+    private static ServerConfig serverConfig = null;
+    public static void main(String[] args) {
+        serverConfig = ServerConfig.init(args);
+        executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
+        try {
+            Server s = new Server();
+            s.run();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Thread.currentThread().interrupt();
+        } finally {
+            try {
+                executor.shutdown();
+                executor.awaitTermination(15, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     public void run() throws InterruptedException {
@@ -39,56 +53,19 @@ public class Server {
                 @Override
                 protected void initChannel(NioSocketChannel ch) {
                     ch.pipeline().addLast(
-                            new LengthFieldBasedFrameDecoder(64 * 1024, 0, 2, 0, 2),
-                            new LengthFieldPrepender(2),
+                            new LengthFieldBasedFrameDecoder(Constant.FRAME_SIZE, 0, 3, 0, 3),
+                            new LengthFieldPrepender(3),
                             new JSONDecoder(),
                             new JSONEncoder(),
-                            new SimpleChannelInboundHandler<Message>() {
-                                @Override
-                                public void channelActive(ChannelHandlerContext ctx) {
-                                    System.out.println("channel Active");
-                                }
-
-                                @Override
-                                protected void channelRead0(ChannelHandlerContext ctx, Message msg)  {
-                                    System.out.println(msg);
-                                    if (msg instanceof CommandMessage) {
-                                        var commandMessage = (CommandMessage) msg;
-                                        switch (CommandUtils.getOrder(commandMessage)) {
-                                            case Constant.ECHO:
-                                                var echo = new CommandMessage(commandMessage.getCommand());
-                                                ctx.writeAndFlush(echo);
-                                                break;
-                                            case Constant.GET:
-                                                FileUtils.sendFile(ctx, Constant.getProperty(STORAGE_ROOT) + CommandUtils.getArgument(commandMessage));
-                                                break;
-                                            case Constant.BYE:
-                                                // Close the current channel
-                                                ctx.channel().close();
-                                                break;
-                                            case Constant.SD:
-                                                // Close the current channel
-                                                ctx.channel().close();
-                                                // Then close the parent channel (the one attached to the bind)
-                                                ctx.channel().parent().close();
-                                                stop();
-                                                break;
-                                            default:
-                                                var wrongCommand = new CommandMessage("Wrong command - " + commandMessage.getCommand());
-                                                ctx.writeAndFlush(wrongCommand);
-                                        }
-                                    }
-                                }
-
-                            }
+                            new ServerHandler(executor,serverConfig)
                     );
                 }
             });
             serverBootstrap.option(ChannelOption.SO_KEEPALIVE, true)
                     .option(ChannelOption.SO_BACKLOG, 128);
-            channelFuture = serverBootstrap.bind(PORT).sync();
+            ChannelFuture channelFuture = serverBootstrap.bind(serverConfig.getPort()).sync();
             System.out.println("Server started");
-            System.out.println("Storage root:" + Constant.getProperty(STORAGE_ROOT));
+            System.out.println(serverConfig.toString());
             channelFuture.channel().closeFuture().sync();   // close port
         } finally {
             bossGroup.shutdownGracefully().sync();
@@ -96,7 +73,7 @@ public class Server {
         }
     }
 
-    public void stop()  {
+    public void stop() {
         // shutdown EventLoopGroup
         bossGroup.shutdownGracefully();
         workGroup.shutdownGracefully();
